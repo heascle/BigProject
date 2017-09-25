@@ -8,7 +8,7 @@
 
 #http_proxy 负责采集代理IP
 
-\n\r##proxy_ip_muitithread_v3.p 采集代理IP并加以验证
+##proxy_ip_muitithread_v3.py 采集代理IP并加以验证
 
 #sqli 采集百度上的对于的关键字的URL，并做注入测试
 
