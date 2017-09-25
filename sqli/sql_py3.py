@@ -1,6 +1,6 @@
-#!C:\Python3\python.exe
+#Python3
 # -*- coding:u8 -*-
-#
+#写得粗糙
 from threading import Thread
 #import urllib2
 from os import path as ospath
