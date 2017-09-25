@@ -1,7 +1,7 @@
 #-*- coding:utf8 -*-
 #author:Heascle
 #version 1
-#python cb_v1.py -u http://192.168.52.129/dvwa/ -f PHP.txt 
+#python cb_v1.py -u http://192.168.52.129/dvwa/ -f PHP.txt -t 1  -p ../com/available_ip.txt
 #python cb_v1.py -u http://bbs.boardzone.cn -f PHP.txt -e php html -p ../com/available_ip.txt -t 10
 #扫描到的目录，结果存放在，../com/content.txt
 import argparse
@@ -26,10 +26,10 @@ from socket import setdefaulttimeout
 ##所以建议前期收集的代理多点，后面发现代理不可用会丢弃代理。
 ##需要改进的地方：
 ##1.如果代理忙碌，怎么处理，直接丢弃，还是考虑放入到一个低等级的队列中
-##目前处理方法是之间丢弃，但是线程多导致代理满荷，可能导致恶心循环到饿死
+##目前处理方法是直接丢弃，但是线程多导致代理满荷，可能导致恶心循环到饿死
 ##2.读取出来的代理IP，给它一个数据结构，不然每次取循环队列的数据都需要
 ##进行字符传处理，十分浪费CPU
-##3.
+##3.剩余代理IP数量不要用循环队列本身的方法，不然有问题
 
 
 
@@ -95,10 +95,11 @@ def create_threads(threads_num,queue_read,url,extension,queue_write,loop_queue):
 	#	t.join()
 	
 
-def dir_bruter(END,url_ex,extension,item,queue_write,loop_queue):
+def dir_bruter(END,url_ex,extension,queue_read,queue_write,loop_queue):
 	'''
 	发送HTTP GET请求，破解网站目录
 	'''
+	item = queue_read.get_nowait()
 	#socket.setdefaulttimeout(8)
 	urls = []
 	if '.' not in item :
@@ -142,51 +143,29 @@ def dir_bruter(END,url_ex,extension,item,queue_write,loop_queue):
 		try :
 			response = urllib2.urlopen(request)
 			html = response.read()
-			#if len(html):
-			if response.headers.has_key('Location'):
-				#url_redirect =  response.headers['Location']
-				#print url_redirect
-				#print '\r\n[R]%d => %s  <= %s'%(response.code,url,url_redirect)
-				#print '\r\n[R]%d => %s'%(response.code,url)
-				queue_write.put( ("[%d]=> %s" %(response.code,url)+'\n') )
-				continue
-				
-			#print( "\r\n[+]%d => %s"%(response.code,url))
-			queue_write.put( ("[%d]=> %s" %(response.code,url)+'\n') )
-		
+			if len(html):
+				stdout.write ( "\r                                                        ")
+				print( "\r\n[+]%d => %s"%(response.code,url))
+				queue_write.put( ("[%d]==> %s" %(response.code,url)+'\n') )
+			else:
+				stdout.write ( "\r                                                        ")
+				print( "\r\n[?]%d => %s"%(response.code,url))
+				queue_write.put( ("[%d]=?> %s" %(response.code,url)+'\n') )
 		except urllib2.HTTPError,e:
 			#print '[2]%s'%e
 			if e.code < 500 and e.code >399:
-				print e
-				stdout.write( "[!]%d => %s"%(e.code,url) +'\r\n')
+				continue
+			print( "\r\n[-]%d --> %s"%(response.code,url))
+			queue_write.put( ("[%d]--> %s" %(response.code,url)+'\n') )	
 		except urllib2.URLError,e:
-			#if e.code != 404:
-			#print '[1]%s'%e.reason.errno
-			#print type(e)
+			print "\r\n[!]%s"%'Discard one proxy ip address'
 			if loop_queue is not None:
 				loop_queue.delete(item)
-		
+			queue_read.put(item)
 		except Exception,e:
-			print '[3]%s'%e
+			print '[?]%s'%e
 			
-		'''
-		except (urllib2.URLError,urllib2.HTTPError,Exception),e :
-			print e
-			#####<urlopen error timed out>
-			if type(e) == urllib2.URLError:
-				if e.reason.errno > 10000 and loop_queue is not None:
-					loop_queue.delete(item)
-				#if e.hasstr('code') and e.code!= 404:
-				#	stdout.write( "[!]%d => %s"%(e.code,url) +'\r\n')
-			#if loop_queue is not None :
-				#print '[-]Proxy ip is not available!'
-			#	loop_queue.delete(item)
-				
-			#else:
-			#print e
-		#except  HTTPError,he:
-		#	print he
-		'''
+
 
 #将取得的有效目录及文件写入文件中，记录下来
 def write_file(END,queue_write):
@@ -220,8 +199,8 @@ class cb_thread(Thread):
 		
 		while not self.queue_read.empty() and not self.END[0]:
 			
-			item = self.queue_read.get_nowait()
-			dir_bruter(END,self.url,self.extension,item,queue_write,loop_queue)
+			#item = self.queue_read.get_nowait()
+			dir_bruter(END,self.url,self.extension,self.queue_read,queue_write,loop_queue)
 			#stdout.write(str)
 			
 
@@ -248,7 +227,6 @@ def mission_hint(END,amount,queue_read,loop_queue):
 	'''
 	提示当前任务进度
 	'''
-
 	while not END[0] :
 		left = queue_read.qsize()
 		per = float(float(amount-left)/float(amount))*100
@@ -258,7 +236,8 @@ def mission_hint(END,amount,queue_read,loop_queue):
 			else:
 				END[0] = True
 				return
-		
+		else:
+			stdout.write('\r %8d LEFT -  %8d AMOUNT %5.2f%s'%(left,amount,per,'%') )
 		#stdout.write( '\r\n Proxies number: %d'%loop_queue.qsize())
 		sleep(1)
 		
@@ -357,4 +336,5 @@ if __name__ == "__main__":
 			print '[*]end by KeyboardInterrupt...'
 			print '--------------wait -------------'
 			#exit(0)
+	exit_programmer()
 		
