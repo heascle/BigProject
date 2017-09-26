@@ -29,7 +29,7 @@
 
 ————available_ip.txt 采集到的可用的代理IP
 
-————sqli_url.txt 采集到到的可能存在注入漏洞的IP
+————sqli_baidu_url.txt 百度搜索关键字采集到的IP
 
 ————user_agent_list.py 获取随机得到的 User-Agent 字符串
 
