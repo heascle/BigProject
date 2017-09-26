@@ -1,7 +1,8 @@
 #-*- coding:u8 -*-
 #爬取百度
 #测试地址是否存在注入点
-#---等下需要优化的，验证地址的地方添加多线程，考虑添加 argparse(真是懒得加了)
+#---等下需要优化的，验证地址的地方添加多线程，考虑添加 argparse
+##结果存放在 ../com/sqli_baidu_url.txt
 import urllib2
 from bs4 import BeautifulSoup as bs
 #from os import getcwd
@@ -30,6 +31,7 @@ def confirm_url(url,keywords='.php?id='):
     return 符合要求应该大于0
     '''
     special_charater_list = ['.','?','+','|']
+	#对其中的特殊字符添加转义\
     for c in special_charater_list:
         position = 0
         while keywords.find(c,position)>-1:
@@ -42,6 +44,7 @@ def confirm_url(url,keywords='.php?id='):
             else:
                 keywords = keywords[0:position] + '\\' + keywords[position:]
             position+=2
+	
     #print len(findall(keywords,url))
     return len(findall(keywords,url))
 
@@ -55,9 +58,9 @@ def getTestURL(wd='inurl:.php?id=',pages=1,delay=5,keywords='.php?id='):
     count = 0 #实际抓取页数
     overpages = 0 #是否超出最大页数
 
-    fo = open('%s/com/sqli_url.txt'%parent_dir,'w')
+    fo = open('%s/com/sqli_baidu_url.txt'%parent_dir,'w')
     fo.close()
-    with open('%s/com/sqli_url.txt'%parent_dir,'a+') as fo:
+    with open('%s/com/sqli_baidu_url.txt'%parent_dir,'a+') as fo:
 		for p in xrange(pages):
 		   
 			url_explorer_raw = 'https://www.baidu.com/s?wd=!@#&pn=#@!'
