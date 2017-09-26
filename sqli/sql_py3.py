@@ -1,4 +1,4 @@
-#!C:\Python3\python.exe
+#Python3
 # -*- coding:u8 -*-
 #
 from threading import Thread
@@ -32,14 +32,7 @@ class SQLiThread(Thread):
 from bs4 import BeautifulSoup as bs
 def SQLiTester(url):
 	'''
-    测试URL是否有 level-1 SQL注入漏洞\n
-    '   single quote \n     ) ))
-    "   double quote \n     ) ))
-    [order by 1][order by 1000]
-    [and 1=1][and 1=2]
-    sqlmap -u [url] --dbms=mysql
-
-    状态码404的应该丢弃
+	测试URL是否有 level-1 SQL注入漏洞\n
 	'''
 	#tags = ['%27']
 	tags = ['\'', '\' and 1=2', '\"', '\" and 1=2', 'e0and 1=2']#....etc
