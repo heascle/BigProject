@@ -1,6 +1,6 @@
 
 # -*- coding:utf-8 -*-
-#增加的指定延迟 +做了一些完善
+#本脚本需要在文件目录下运行（没修改成功）
 #对HTTPS做了修改，但是目前发现并没有什么好的方法可以 检测HTTPS代理IP
 #python proxy_ip_muitithread_v3.py -t 10 -d 8 -p 3
 ###bug  文件目录
