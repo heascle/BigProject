@@ -1,4 +1,4 @@
-#Python3
+#!C:\Python3\python.exe
 # -*- coding:u8 -*-
 #
 from threading import Thread
@@ -36,6 +36,7 @@ def SQLiTester(url):
 	'''
 	#tags = ['%27']
 	tags = ['\'', '\' and 1=2', '\"', '\" and 1=2', 'e0and 1=2']#....etc
+	
 	#and sleep(1)
 	lists = SQLiTestLists(url,tags)
 	result_list_s = []
@@ -163,6 +164,7 @@ def distinguishString(normal,result_list_s):
 	2.char list
 	
 	'''
+	echo = ['SQL syntax']
 	len_normal = len(normal)
 	#print (len_normal)
 	#seq_list = 0
@@ -175,6 +177,9 @@ def distinguishString(normal,result_list_s):
 		len_list = []
 		len_list.append(len_normal)
 		for test in result_list:
+			for e in echo:
+				if e in str(test):
+					return 0
 			len_test = len(test)
 			
 			if len_test == len_normal:
@@ -243,6 +248,8 @@ if __name__ == '__main__':
 		result = distinguishString(normal,result_list_s)
 		if  result is not None and result >=0:
 			print ('[+]Possible : %s'%url)
+		else:
+			print ('[-]No like : %s'%url)
 	
 	
 	'''
