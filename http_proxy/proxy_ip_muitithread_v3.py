@@ -1,8 +1,8 @@
 
 # -*- coding:utf-8 -*-
-#本脚本需要在文件目录下运行（没修改成功）
+#增加的指定延迟 +做了一些完善
 #对HTTPS做了修改，但是目前发现并没有什么好的方法可以 检测HTTPS代理IP
-#python proxy_ip_muitithread_v3.py -t 10 -d 8 -p 3
+#python proxy_ip_muitithread_v3.py -t 20 -d 8 -p 3
 ###bug  文件目录
 import urllib
 import urllib2
@@ -14,18 +14,22 @@ import argparse
 from time import sleep
 from bs4 import BeautifulSoup as BS
 from sys import stdout
+
+from os import path as ospath
+from sys import path as syspath
+parent_dir =  ospath.dirname(ospath.dirname(ospath.abspath(__file__)))
 #import sys
 	#get each page's poxy ip ,include	"protocol", "ip"  "port" and  "site
 	#获取每一页
 def get_proxy_ip(page_count):
 	#create a file ,or overwrite the old one
-	fobo=open('../com/proxy_list.txt', 'w')
+	fobo=open('%s/com/proxy_list.txt'%parent_dir, 'w')
 	fobo.close()
 	for page in range(1,page_count+1):
 		url = "http://www.xicidaili.com/nn/" + str(page)
 		headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'}
 		
-		fobo=open('../com/proxy_list.txt', 'a')
+		fobo=open('%s/com/proxy_list.txt'%parent_dir, 'a')
 		try:
 			request = urllib2.Request(url, headers=headers)
 			response = urllib2.urlopen(request)
@@ -89,7 +93,7 @@ class MyThread(threading.Thread):
 	
 def read_file():
 	global queue_read
-	fproxyip = open("../com/proxy_list.txt", "r")
+	fproxyip = open("%s/com/proxy_list.txt"%parent_dir, "r")
 	proxy=fproxyip.readlines()
 	for proxyip in proxy:
 		proxyip=proxyip.strip('\n').split(',')
@@ -100,19 +104,19 @@ def read_file():
 def write_file():
 	global queue_write
 	global END
-	fip = open("../com/available_ip.txt", "a")
+	fip = open("%s/com/available_ip.txt"%parent_dir, "a")
 
 	while  not END:
 		if not queue_write.empty():
 			str = queue_write.get_nowait()
 			fip.writelines(str)
-
+			fip.flush()
 		else:
 			sleep(0.1)
 			#count +=1
 	fip.close()
 def check_ip(proxyip):
-	url_http = 'http://1212.ip138.com/ic.asp'
+	url_http = 'http://www.baidu.com/s?ie=UTF-8&wd=%E6%9F%A5%E8%AF%A2ip'
 	url_https = 'https://www.rong360.com/'
 	#fip = open("ip.txt", "w")
 	global socket_delay
@@ -126,14 +130,12 @@ def check_ip(proxyip):
 			html = urllib.urlopen(url_http,proxies=proxy_host).read()
 			if html:
 			#print html
-				real_ip =  re.findall(r'\"center\">(.*?)</div>',html)
+				real_ip =  re.findall(r'fk=\"(.*?)\"',html)
 				#real_ip = real_ip.replace('\'','').replace('[','').replace(']','')
 				real_ip = real_ip[0]
 				if real_ip == proxyip[1]:
 					#stdout.write ('[^__^]'+'\n')
 					#stdout.write ("[+]avaiable: "+host+'\n')
-					
-					#queue_write.put(host+' , '+proxyip[3]+'\n')	
 					
 					if output_type==0:
 						queue_write.put( proxyip[0]+","+proxyip[1]+","+proxyip[2]+","+proxyip[3]+'\n')
@@ -252,5 +254,3 @@ if __name__ == '__main__':
 			print '--------------wait -------------'
 			break
 		
-
-	
