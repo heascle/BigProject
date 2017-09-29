@@ -126,7 +126,7 @@ def check_ip(proxyip):
 			html = urllib.urlopen(url_http,proxies=proxy_host).read()
 			if html:
 			#print html
-				real_ip =  re.findall(r'\[(.*?)\]',html)
+				real_ip =  re.findall(r'\"center\">(.*?)</div>',html)
 				#real_ip = real_ip.replace('\'','').replace('[','').replace(']','')
 				real_ip = real_ip[0]
 				if real_ip == proxyip[1]:
